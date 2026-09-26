@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Launcher for the wikipedia-pageviews skill.
+# On first run it creates a virtualenv with pinned dependencies, then it runs scripts/wpv.py.
+set -euo pipefail
+
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VENV="$SKILL_DIR/.venv"
+# An installed skill folder can be read-only, so fall back to the user cache.
+if [ ! -f "$VENV/.installed" ] && [ ! -w "$SKILL_DIR" ]; then
+  VENV="${XDG_CACHE_HOME:-$HOME/.cache}/wpv/venv"
+fi
+
+if [ ! -f "$VENV/.installed" ]; then
+  python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' \
+    || { echo "ERROR: Python 3.11+ is required (found $(python3 --version 2>&1))." >&2; exit 2; }
+  echo "wpv: first run, installing dependencies into $VENV (takes about a minute)..." >&2
+  if command -v uv >/dev/null 2>&1; then
+    uv venv -q --allow-existing "$VENV" >&2
+    uv pip install -q --python "$VENV/bin/python" -r "$SKILL_DIR/requirements.txt" >&2
+  else
+    python3 -m venv "$VENV" >&2
+    "$VENV/bin/pip" install -q --disable-pip-version-check -r "$SKILL_DIR/requirements.txt" >&2
+  fi
+  touch "$VENV/.installed"  # marker: only a complete install counts
+fi
+
+exec "$VENV/bin/python" "$SKILL_DIR/scripts/wpv.py" "$@"

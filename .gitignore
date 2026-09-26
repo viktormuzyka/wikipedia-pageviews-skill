@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# wikipedia-pageviews skill
+wpv-output/
+wikipedia-pageviews/evals/runs/
